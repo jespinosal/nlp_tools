@@ -1,6 +1,5 @@
 import torch
 from transformers import AutoModel
-from config import ConfigSeq2SeqMultiLabel
 
 
 class RobertaMultiLabel(torch.nn.Module):
