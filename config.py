@@ -1,8 +1,12 @@
 from typing import List
+from abc import ABC
 
 
-class ConfigSeq2SeqMultiLabel:
+class Config(ABC):
     DEVICE: List[str] = 'cpu'
+
+
+class ConfigSeq2SeqMultiLabel(Config):
     #  data
     LABEL_COLUMNS: list = ['']
     TEXT_COLUMN: str = 'text'

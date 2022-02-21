@@ -1,8 +1,12 @@
 import os
+import pandas as pd
 import numpy as np
 import torch
 import random
 from sklearn.model_selection import StratifiedKFold
+from config import Config
+from torch.utils.data import Dataset
+from transformers import AutoTokenizer
 
 
 def set_seed(seed=42):
@@ -48,3 +52,33 @@ def set_cv_dataset_partitions(df, stratify_column='y', k_folds=10, seed=100):
         df.loc[test_index, 'index_id'] = test_index
     df['k_fold'] = df['k_fold'].astype(int)
     return df
+
+
+def get_data_loaders(df: pd.DataFrame, df_torch_parser: Dataset, config:Config,
+                     tokenizer: AutoTokenizer, kfold: int, text_column: str):
+
+    df_torch_test = df_torch_parser(df=df[df[config.PARITION_COLUMN]==kfold],
+                                    tokenizer=tokenizer,
+                                    config=config,
+                                    text_column=text_column)
+
+    df_torch_train = df_torch_parser(df=df[df[config.PARITION_COLUMN]!=kfold],
+                                     tokenizer=tokenizer,
+                                     config=config,
+                                     text_column=text_column)
+
+    data_loader_train = torch.utils.data.DataLoader(df_torch_train,
+                                                    batch_size=config.TRAIN_BATCH_SIZE,
+                                                    num_workers=2,
+                                                    shuffle=True,
+                                                    pin_memory=True,
+                                                    drop_last=False)
+
+    data_loader_test = torch.utils.data.DataLoader(df_torch_test,
+                                                   batch_size=config.TEST_BATCH_SIZE,
+                                                   num_workers=2,
+                                                   shuffle=True,
+                                                   pin_memory=True,
+                                                   drop_last=False)
+
+    return data_loader_train, data_loader_test
