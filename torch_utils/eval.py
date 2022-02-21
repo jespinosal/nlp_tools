@@ -1,5 +1,5 @@
 import gc
-import tqdm as tqdm
+from tqdm import tqdm
 import torch
 
 
