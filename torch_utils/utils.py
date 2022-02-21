@@ -54,7 +54,7 @@ def set_cv_dataset_partitions(df, stratify_column='y', k_folds=10, seed=100):
     return df
 
 
-def get_data_loaders(df: pd.DataFrame, df_torch_parser: Dataset, config:Config,
+def get_data_loaders(df: pd.DataFrame, df_torch_parser: Dataset, config: Config,
                      tokenizer: AutoTokenizer, kfold: int, text_column: str):
 
     df_torch_test = df_torch_parser(df=df[df[config.PARITION_COLUMN]==kfold],

@@ -4,6 +4,7 @@ import torch
 import pandas as pd
 import numpy as np
 import copy
+from torch_utils.eval import validate_epoch
 
 
 def train_epoch(model, optimizer, data_loader, loss_fn, device, scheduler) :
@@ -32,14 +33,14 @@ def train_epoch(model, optimizer, data_loader, loss_fn, device, scheduler) :
     return batch_loss
 
 
-def fit(model, optimizer, train_loader, val_loader, loss_fn, device, epochs, model_path, scheduler, epoch_validator):
+def fit(model, optimizer, train_loader, val_loader, loss_fn, device, epochs, model_path, scheduler):
     history = []
     loss_val_best = np.inf
     # Epoch loop
     for epoch in range(epochs):
         loss_train = train_epoch(model, optimizer, train_loader, loss_fn, device,
                                  scheduler)
-        loss_val = epoch_validator(model, optimizer, val_loader, loss_fn, device)
+        loss_val = validate_epoch(model, val_loader, loss_fn, device)
         epoch_history = {'epoch': epoch,
                          'train_loss:': loss_train,
                          'val_loss': loss_val}
