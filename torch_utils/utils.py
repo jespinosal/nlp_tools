@@ -3,7 +3,6 @@ import numpy as np
 import torch
 import random
 from sklearn.model_selection import StratifiedKFold
-from collections import Counter
 
 
 def set_seed(seed=42):

@@ -1,10 +1,14 @@
 import torch
+import pandas as pd
+from transformers import AutoTokenizer
+from config import ConfigSeq2SeqMultiLabel
+
 
 class DataSetSeq2SeqMultiLabel(torch.utils.data.Dataset):
     def __init__(self,
                  df: pd.DataFrame,
                  tokenizer: AutoTokenizer,
-                 config: Config,
+                 config: ConfigSeq2SeqMultiLabel,
                  inference_mode: bool = False,
                  text_column: str = ''
                  ):
