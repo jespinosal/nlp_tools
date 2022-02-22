@@ -5,7 +5,7 @@ import cleanlab
 
 
 def get_k_fold_class_probs(df, transformation, baseline_model, k_folds=10,
-                           text_column='comment_text', label_column='sentiment') -> pd.Dataframe:
+                           text_column='comment_text', label_column='sentiment') -> pd.DataFrame:
     """
 
     :param df:
