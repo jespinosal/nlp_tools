@@ -44,6 +44,14 @@ def get_k_fold_class_probs(df, transformation, baseline_model, k_folds=10,
 
 
 def get_noisy_labels(pyx, s, multi_label, verbose=True):
+    """
+
+    :param pyx:
+    :param s:
+    :param multi_label:
+    :param verbose:
+    :return:
+    """
 
     # Estimate the  P(s,y) counting of the latent joint distribution of true and noisy labels using observed s and
     # predicted probabilities psx
@@ -75,11 +83,12 @@ def get_noisy_labels(pyx, s, multi_label, verbose=True):
         prune_method='both',
         sorted_index_method='normalized_margin',  # ['prob_given_label', 'normalized_margin']
         frac_noise=1.0,
-        multi_label=False)
+        multi_label=multi_label)
 
     if verbose:
         print(f"Total found error indices {len(cj_only_label_error_indices)} like {cj_only_label_error_indices[0:5]} .." )
         print(f"Total components on the matrix {cj.sum()}")
         print(f"confident join marix {cj}")
 
+    # Index labels are ordered by likelihood of being error. First index is most likely error.
     return cj_only_bool_mask, label_errors_idx_sorted, label_errors_idx

@@ -4,6 +4,11 @@ from nltk.tokenize import word_tokenize
 
 
 def clean_text(text):
+    """
+
+    :param text:
+    :return:
+    """
     # will replace the html characters with " "
     text = re.sub('<.*?>', ' ', text)
     # To remove the punctuations
@@ -20,6 +25,12 @@ def clean_text(text):
 
 
 def stopwords(input_text, stop_words):
+    """
+
+    :param input_text:
+    :param stop_words:
+    :return:
+    """
     word_tokens = word_tokenize(input_text)
     output = []
     for w in word_tokens:
