@@ -187,7 +187,7 @@ def reader_dataset_go_emotions(sentiment_analysis_data_path) -> pd.DataFrame:
     return df_go_emotions
 
 
-def reader_dataset_good_news_everyone() -> pd.DataFrame:
+def reader_dataset_good_news_everyone(sentiment_analysis_data_path) -> pd.DataFrame:
     """
     Read list of objects from a JSON lines file.
     5000 lines, rich annotations from 5 annotators
@@ -345,7 +345,7 @@ def reader_dataset_emo_bank(sentiment_analysis_data_path) -> pd.DataFrame:
     :return:
     """
 
-    def valence_to_polarity(valence, pos_threshold, neg_threshold, sentiment_analysis_data_path):
+    def valence_to_polarity(valence, pos_threshold, neg_threshold):
         if valence > pos_threshold:
             return PolarityClasses.POSITIVE
         elif valence < neg_threshold:
@@ -570,11 +570,11 @@ if __name__ == "__main__":
                          'max': 18}  # --> approximated to nearest byte value (to focus on short context-pure)
 
     df_isear = reader_dataset_isear(sentiment_analysis_data_path=sentiment_analysis_data_path_)
-    df_emocap = reader_dataset_emocap(df_sentiment_analyssentiment_analysis_data_pathis_path=sentiment_analysis_data_path_)
+    df_emocap = reader_dataset_emocap(sentiment_analysis_data_path=sentiment_analysis_data_path_)
     df_gne = reader_dataset_good_news_everyone(sentiment_analysis_data_path=sentiment_analysis_data_path_)
     df_go_emotions = reader_dataset_go_emotions(sentiment_analysis_data_path=sentiment_analysis_data_path_)
     df_emo_bank = reader_dataset_emo_bank(sentiment_analysis_data_path=sentiment_analysis_data_path_)
-    df_dialog = reader_dataset_dialog(df_sentiment_asentiment_analysis_data_pathnalysis_path=sentiment_analysis_data_path_)
+    df_dialog = reader_dataset_dialog(sentiment_analysis_data_path=sentiment_analysis_data_path_)
     df_emotion_stimulus = reader_dataset_emotion_stimulus(sentiment_analysis_data_path=sentiment_analysis_data_path_)
     df_sentiment_analysis = pd.concat([df_isear, df_emocap, df_gne, df_go_emotions, df_emo_bank,
                                        df_emotion_stimulus, df_dialog
@@ -605,5 +605,5 @@ if __name__ == "__main__":
             pass
             #  print(label_emotion_, text_)
 
-    df_sentiment_analysis.to_csv(df_sentiment_analysis_path, sep=';', index=False)
+    df_sentiment_analysis.to_csv(df_sentiment_analysis_path_, sep=';', index=False)
 
