@@ -73,8 +73,10 @@ class PolarityClasses:
 class ConstantsSentimentAnalysis:
     LABEL_POLARITY = 'label_polarity'
     LABEL_EMOTION = 'label_emotion'
+    LABEL_EKMAN = 'label_ekman'
     TEXT = 'text'
     SOURCE = 'source'
+    PARTITION = 'partition'
 
 
 class ConstantsSentimentDatasetsNames:
