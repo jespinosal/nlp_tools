@@ -64,6 +64,21 @@ import string
 from collections import Counter
 
 
+class DataPartitions:
+    TRAIN = 'train'
+    TEST = 'test'
+    DEV = 'dev'
+
+    @classmethod
+    def get_partition(cls, path):
+        if cls.TRAIN in path:
+            return cls.TRAIN
+        elif cls.TEST in path:
+            return cls.TEST
+        else:
+            return cls.DEV
+
+
 class PolarityClasses:
     POSITIVE = 'positive'
     NEGATIVE = 'negative'
@@ -174,6 +189,7 @@ def reader_dataset_go_emotions(sentiment_analysis_data_path) -> pd.DataFrame:
         df = pd.read_csv(path, delimiter='\t', quoting=3, header=None,
                          names=[ConstantsSentimentAnalysis.TEXT,
                                 ConstantsSentimentAnalysis.LABEL_EMOTION, "annotator_id"])
+        df[ConstantsSentimentAnalysis.PARTITION] = DataPartitions.get_partition(path=path)
         df_list.append(df)
 
     df_go_emotions = pd.concat(df_list)
@@ -183,10 +199,68 @@ def reader_dataset_go_emotions(sentiment_analysis_data_path) -> pd.DataFrame:
     df_go_emotions[ConstantsSentimentAnalysis.LABEL_POLARITY] = None
     df_go_emotions[ConstantsSentimentAnalysis.SOURCE] = ConstantsSentimentDatasetsNames.GO_EMOTIONS
     del df_go_emotions["annotator_id"]
-    # df_go_emotions_['overlaps'] = df_go_emotions_[emotions].sum(axis=1)
-    # df_go_emotions_ = df_go_emotions_[df_go_emotions_['overlaps'] == 1]
 
     return df_go_emotions
+
+
+def reader_dataset_emocap(sentiment_analysis_data_path) -> pd.DataFrame:
+    """
+    Dataset reader for emocap data
+    The emocap dataset is splited in three files with the follow columns:
+    ['Dialogue_ID', 'Utterance_Id', 'Utterance', 'Emotion', 'Valence', 'Activation', 'Dominance']
+    Dev include  805 lines, Test include 2021 lines ,Train include 7213 lines fot a total of 10039 lines
+    :param path:
+    :return:
+    """
+    paths = [os.path.join(sentiment_analysis_data_path, 'emocap_dev.csv'),
+             os.path.join(sentiment_analysis_data_path, 'emocap_test.csv'),
+             os.path.join(sentiment_analysis_data_path, 'emocap_train.csv')]
+
+    emotion_map = {
+        "ang": "anger",
+        "dis": "disgust",
+        "exc": "excitement",
+        "fea": "fear",
+        "fru": "frustration",
+        "hap": "happiness",
+        "neu": "neutral",
+        "oth": "other",
+        "sad": "sadness",
+        "sur": "surprise",
+        "xxx": "unknown",
+    }
+
+    SWDA_DA_DESCRIPTION = {
+        "+": "Unknown",
+        "x": "Unknown",
+        "ny": "Unknown",
+        "sv_fx": "Unknown",
+        "qy_qr": "Unknown",
+        "ba_fe": "Unknown",
+        "%": "Uninterpretble",
+        "nn": "No Answers"
+    }
+
+    text_column = 'Utterance'
+    label_emotion_column = 'Emotion'
+    invalid_emotions = ['other']
+    df_list = []
+    for path in paths:
+        df = pd.read_csv(path)
+        df[ConstantsSentimentAnalysis.PARTITION] = DataPartitions.get_partition(path=path)
+        df_list.append(df)
+
+    df_emocap = pd.concat(df_list)
+    df_emocap[ConstantsSentimentAnalysis.LABEL_EMOTION] = df_emocap[label_emotion_column].replace(emotion_map)
+    df_emocap = df_emocap.rename(columns={text_column: ConstantsSentimentAnalysis.TEXT})
+    df_emocap = df_emocap[~df_emocap[ConstantsSentimentAnalysis.LABEL_EMOTION].isin(invalid_emotions)]
+    df_emocap[ConstantsSentimentAnalysis.LABEL_POLARITY] = None
+    df_emocap['source'] = ConstantsSentimentDatasetsNames.EMOCAP
+    df_emocap[ConstantsSentimentAnalysis.LABEL_EMOTION] = df_emocap[
+        ConstantsSentimentAnalysis.LABEL_EMOTION].apply(lambda x: [x])
+
+    return df_emocap[[ConstantsSentimentAnalysis.TEXT, ConstantsSentimentAnalysis.LABEL_EMOTION,
+                      ConstantsSentimentAnalysis.LABEL_POLARITY, ConstantsSentimentAnalysis.SOURCE]]
 
 
 def reader_dataset_good_news_everyone(sentiment_analysis_data_path) -> pd.DataFrame:
@@ -236,65 +310,6 @@ def reader_dataset_good_news_everyone(sentiment_analysis_data_path) -> pd.DataFr
 
     return df_gne[[ConstantsSentimentAnalysis.TEXT, ConstantsSentimentAnalysis.LABEL_EMOTION,
                    ConstantsSentimentAnalysis.LABEL_POLARITY, ConstantsSentimentAnalysis.SOURCE]]
-
-
-def reader_dataset_emocap(sentiment_analysis_data_path) -> pd.DataFrame:
-    """
-    Dataset reader for emocap data
-    The emocap dataset is splited in three files with the follow columns:
-    ['Dialogue_ID', 'Utterance_Id', 'Utterance', 'Emotion', 'Valence', 'Activation', 'Dominance']
-    Dev include  805 lines, Test include 2021 lines ,Train include 7213 lines fot a total of 10039 lines
-    :param path:
-    :return:
-    """
-    paths = [os.path.join(sentiment_analysis_data_path, 'emocap_dev.csv'),
-             os.path.join(sentiment_analysis_data_path, 'emocap_test.csv'),
-             os.path.join(sentiment_analysis_data_path, 'emocap_train.csv')]
-
-    emotion_map = {
-        "ang": "anger",
-        "dis": "disgust",
-        "exc": "excitement",
-        "fea": "fear",
-        "fru": "frustration",
-        "hap": "happiness",
-        "neu": "neutral",
-        "oth": "other",
-        "sad": "sadness",
-        "sur": "surprise",
-        "xxx": "unknown",
-    }
-
-    SWDA_DA_DESCRIPTION = {
-        "+": "Unknown",
-        "x": "Unknown",
-        "ny": "Unknown",
-        "sv_fx": "Unknown",
-        "qy_qr": "Unknown",
-        "ba_fe": "Unknown",
-        "%": "Uninterpretble",
-        "nn": "No Answers"
-    }
-
-    text_column = 'Utterance'
-    label_emotion_column = 'Emotion'
-    invalid_emotions = ['other']
-    df_list = []
-    for path in paths:
-        df = pd.read_csv(path)
-        df_list.append(df)
-
-    df_emocap = pd.concat(df_list)
-    df_emocap[ConstantsSentimentAnalysis.LABEL_EMOTION] = df_emocap[label_emotion_column].replace(emotion_map)
-    df_emocap = df_emocap.rename(columns={text_column: ConstantsSentimentAnalysis.TEXT})
-    df_emocap = df_emocap[~df_emocap[ConstantsSentimentAnalysis.LABEL_EMOTION].isin(invalid_emotions)]
-    df_emocap[ConstantsSentimentAnalysis.LABEL_POLARITY] = None
-    df_emocap['source'] = ConstantsSentimentDatasetsNames.EMOCAP
-    df_emocap[ConstantsSentimentAnalysis.LABEL_EMOTION] = df_emocap[
-        ConstantsSentimentAnalysis.LABEL_EMOTION].apply(lambda x: [x])
-
-    return df_emocap[[ConstantsSentimentAnalysis.TEXT, ConstantsSentimentAnalysis.LABEL_EMOTION,
-                      ConstantsSentimentAnalysis.LABEL_POLARITY, ConstantsSentimentAnalysis.SOURCE]]
 
 
 def reader_dataset_isear(sentiment_analysis_data_path) -> pd.DataFrame:
@@ -596,16 +611,9 @@ if __name__ == "__main__":
     df_sentiment_analysis[ConstantsSentimentAnalysis.LABEL_POLARITY] = df_sentiment_analysis[
         ConstantsSentimentAnalysis.LABEL_EMOTION].apply(lambda label_emotions: polarity_parser(labels=label_emotions))
 
-
     cases = [['excitement', 'neutral'], ['anger', 'love'], ['admiration', 'disappointment'],
              ['nervousness', 'neutral'], ['love', 'sadness'], ['disapproval', 'love'], ['anger', 'neutral'],
              ['fear', 'neutral']]
-
-    for index_, text_, label_emotion_, label_polarity_, source_, _, _ in \
-            df_sentiment_analysis[df_sentiment_analysis.label_polarity.isin(['overlap'])].itertuples():
-        if label_emotion_ in cases:
-            pass
-            #  print(label_emotion_, text_)
 
     df_sentiment_analysis.to_csv(df_sentiment_analysis_path_, sep=';', index=False)
 

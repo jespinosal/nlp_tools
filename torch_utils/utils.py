@@ -9,6 +9,16 @@ from torch.utils.data import Dataset
 from transformers import AutoTokenizer
 
 
+def calculate_max_length(text_size):
+    """
+
+    :param text_size:
+    :return:
+    """
+    pass
+
+
+
 def set_seed(seed=42):
     """
     Sets the seed of the entire notebook so results are the same every time we run.
