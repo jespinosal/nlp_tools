@@ -19,7 +19,7 @@ def get_k_fold_class_probs(df, transformation, baseline_model, k_folds=10,
 
     # Training with noise
     df = df.copy()
-    transformation.fit(df.comment_text)
+    transformation.fit(df[[text_column]])
     for k_fold in range(k_folds):
         # Prepare k fold data
         X_train = transformation.transform(df.loc[df.k_fold != k_fold, text_column])
