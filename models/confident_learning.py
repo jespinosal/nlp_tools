@@ -7,7 +7,8 @@ import cleanlab
 def get_k_fold_class_probs(df, transformation, baseline_model, k_folds=10,
                            text_column='comment_text', label_column='sentiment') -> pd.DataFrame:
     """
-
+    Is recommended to implement a hyper tuning of parameters first to get the most suitable transformation and
+    baseline model parameters.
     :param df:
     :param transformation:
     :param baseline_model:
@@ -26,6 +27,7 @@ def get_k_fold_class_probs(df, transformation, baseline_model, k_folds=10,
         y_train = df.loc[df.k_fold != k_fold, label_column]
         X_test = transformation.transform(df.loc[df.k_fold == k_fold, text_column])
         y_test = df.loc[df.k_fold == k_fold, label_column]
+        # todo use y test to return the model performance
 
         # Train k fold partition
         model = baseline_model()
