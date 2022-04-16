@@ -5,7 +5,6 @@ from tqdm import tqdm
 from nltk.tokenize import word_tokenize
 from nltk.stem import PorterStemmer
 import spacy
-import pandas as pd
 import multiprocessing as mtp
 
 
@@ -68,8 +67,7 @@ class TextPreprocessing:
 
         return spacy_docs
 
-    def _preprocessing_text(self, doc):
-        # todo parallelize multi procesing
+    def _pos_processing_text(self, doc):
         text_word_tokens = []
 
         # Word token level processing
@@ -79,19 +77,31 @@ class TextPreprocessing:
         text_preprocessed = ' '.join(text_word_tokens)
 
         # String level processing
-        text_preprocessed = self._string_text_processing(text_preprocessed)
+        text_preprocessed = self._string_text_pos_processing(text_preprocessed)
 
         return text_preprocessed
 
-    def preprocessing_texts(self, spacy_docs):
-        texts_preprocessed = []
+    def pos_processing_texts(self, spacy_docs):
+        texts_pos_processed = []
         if self.n_process > 1:
             with mtp.Pool(processes=self.n_process) as pool:
-                texts_preprocessed = pool.map(self._preprocessing_text, spacy_docs)
+                texts_pos_processed = pool.map(self._pos_processing_text, spacy_docs)
+        else:
+            for doc in tqdm(spacy_docs):
+                texts_pos_processed.append(self._pos_processing_text(doc))
 
-        for doc in tqdm(spacy_docs):
-            texts_preprocessed.append(self._preprocessing_text(doc))
-        return texts_preprocessed
+        return texts_pos_processed
+
+    def pre_processing_texts(self, texts):
+        texts_pre_processed = []
+        if self.n_process > 1:
+            with mtp.Pool(processes=self.n_process) as pool:
+                texts_pre_processed = pool.map(self._string_text_pre_processing, texts)
+        else:
+            for text in tqdm(texts):
+                texts_pre_processed.append(self._string_text_pre_processing(text))
+
+        return texts_pre_processed
 
     def _word_token_processing(self, word_token: spacy.tokens.token):
         """
@@ -114,23 +124,26 @@ class TextPreprocessing:
         if self.config.get('steam', False):
             return self._stemming(word_token.text)
 
-    def _string_text_processing(self, text):
+    def _string_text_pos_processing(self, text):
         """
 
         :param text:
         :param config:
         :return:
         """
-        if self.config.get('delete_html', False):
-            text = re.sub('<.*?>', ' ', text)
         if self.config.get('delete_punctuation', False):
             text = text.translate(str.maketrans(' ', ' ', string.punctuation))
         if self.config.get('delete_numbers', False):
             text = re.sub('[0-9]', ' ', text)
-        if self.config.get('delete_new_line', False):
-            text = re.sub("\n", " ", text)
         if self.config.get('lowercase', False):
             text = text.lower()
+        return text
+
+    def _string_text_pre_processing(self, text):
+        if self.config.get('delete_new_line', False):
+            text = re.sub("\n", " ", text)
+        if self.config.get('delete_html', False):
+            text = re.sub('<.*?>', ' ', text)
         if self.config.get('delete_white_spaces', False):
             text = ' '.join(text.split())
         return text
@@ -138,6 +151,7 @@ class TextPreprocessing:
 
 if __name__ == "__main__":
 
+    import pandas as pd
     import time
     start = time.time()
     text_path = 'data/sentiment_analysis.csv'
@@ -145,7 +159,7 @@ if __name__ == "__main__":
     texts = df.text.to_list()
     nlp_model = spacy.load('en_core_web_sm')
     batch_size = 512
-    n_process = 4
+    n_process = 1
     config = {'delete_html': True,
               'delete_numbers': True,
               'delete_new_line': True,
@@ -157,10 +171,13 @@ if __name__ == "__main__":
               'lemma': True,
               'stop_words': ['the', 'or', 'and', 'a', 'to', 'of', 'as']}
 
-    text_preprocessor = TextPreprocessing(nlp_model=nlp_model, config=config,
-                                          batch_size=batch_size, n_process=n_process)
-    docs = text_preprocessor.process_nlp_documents(texts=texts)
-    texts = text_preprocessor.preprocessing_texts(spacy_docs=docs)
+    text_preprocessor = TextPreprocessing(nlp_model=nlp_model,
+                                          config=config,
+                                          batch_size=batch_size,
+                                          n_process=n_process)
+    text_cleaned = text_preprocessor.pre_processing_texts(texts=texts)
+    docs = text_preprocessor.process_nlp_documents(texts=text_cleaned)
+    texts_pos_processed = text_preprocessor.pos_processing_texts(spacy_docs=docs)
     import sys
     print(sys.getsizeof(docs))
     end = time.time()
