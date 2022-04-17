@@ -53,6 +53,30 @@ class TextPreprocessing:
         self.text_spacy_processed = False
         self.config = config
 
+    @staticmethod
+    def split_abbreviation(text):
+        """
+        Process common abbreviations on isolate tokens
+        :param text:
+        :return:
+        """
+        text = re.sub(r"\'s", " \'s", text)
+        text = re.sub(r"\'ve", " \'ve", text)
+        text = re.sub(r"n\'t", " n\'t", text)
+        text = re.sub(r"\'re", " \'re", text)
+        text = re.sub(r"\'d", " \'d", text)
+        text = re.sub(r"\'ll", " \'ll", text)
+        return text
+
+    @staticmethod
+    def split_punctuation(text):
+        text = re.sub(r",", " , ", text)
+        text = re.sub(r"!", " ! ", text)
+        text = re.sub(r"\(", " \( ", text)
+        text = re.sub(r"\)", " \) ", text)
+        text = re.sub(r"\?", " \? ", text)
+        return text
+
     def _stemming(self, word):
         return self._ps.stem(word)
 
@@ -137,6 +161,12 @@ class TextPreprocessing:
             text = re.sub('[0-9]', ' ', text)
         if self.config.get('lowercase', False):
             text = text.lower()
+        if self.config.get('split_punctuation'):
+            text = self.split_punctuation(text)
+        if self.config.get('split_abbreviation'):
+            text = self.split_abbreviation(text)
+        if self.config.get('delete_white_spaces', False):
+            text = ' '.join(text.split())
         return text
 
     def _string_text_pre_processing(self, text):
@@ -169,7 +199,9 @@ if __name__ == "__main__":
               'ner_masking': True,
               'steam': False,
               'lemma': True,
-              'stop_words': ['the', 'or', 'and', 'a', 'to', 'of', 'as']}
+              'stop_words': ['the', 'or', 'and', 'a', 'to', 'of', 'as'],
+              'split_punctuation': True,
+              'split_abbreviations': True}
 
     text_preprocessor = TextPreprocessing(nlp_model=nlp_model,
                                           config=config,
