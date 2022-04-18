@@ -140,7 +140,7 @@ if __name__ == "__main__":
               'ner_masking': True,
               'steam': False,
               'lemma': True,
-              'stop_words': ['the', 'or', 'and', 'a', 'to', 'of', 'as']}
+              'stop_words': ['the', 'or', 'and', 'a', 'to', 'of', 'as', 'be', 'in']}
 
     text_preprocessor = TextPreprocessing(nlp_model=nlp_model,
                                           config=config,

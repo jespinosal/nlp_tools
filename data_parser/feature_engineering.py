@@ -5,6 +5,7 @@ import spacy
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.base import BaseEstimator, TransformerMixin
 from typing import List
+from models.topic_modelling import LDAModelMgr
 
 
 class FeatureExtractionTags(ABC, BaseEstimator, TransformerMixin):
@@ -19,7 +20,6 @@ class FeatureExtractionTags(ABC, BaseEstimator, TransformerMixin):
         self.default_token = 'EMPTY'
         self.valid_labels = self._get_labels(nlp_model, valid_labels) + [self.default_token]
         self.consider_intermediate_tokens = True
-        self.return_dataset = False
 
     @abstractmethod
     def _get_labels(self, nlp_model, valid_labels):
@@ -69,11 +69,8 @@ class FeatureExtractionTags(ABC, BaseEstimator, TransformerMixin):
         fitted_corpus = self.process_documents(X)
         vectorizer = TfidfVectorizer(analyzer='word', ngram_range=(1, 2))
         sparse_vectors = vectorizer.fit_transform(fitted_corpus)
-        if self.return_dataset:
-            dense_vector = sparse_vectors.todense().tolist()
-            return pd.DataFrame(dense_vector, columns=vectorizer.get_feature_names())
-        else:
-            sparse_vectors
+        dense_vector = sparse_vectors.todense().tolist()
+        return pd.DataFrame(dense_vector, columns=vectorizer.get_feature_names_out())
 
 
 class FeatureExtractionPartOfSpeech(FeatureExtractionTags):
@@ -99,8 +96,8 @@ class FeatureExtractionDependencyParser(FeatureExtractionTags):
 class FeatureExtractionPosTagging(FeatureExtractionTags):
 
     def _get_labels(self, nlp_model, valid_labels):
-        pos_list = 'ADJ', 'ADP', 'ADV', 'AUX', 'CONJ', 'CCONJ', 'DET', 'INTJ', 'NOUN', 'NUM', 'PART', \
-                   'PRON', 'PROPN', 'PUNCT', 'SCONJ', 'SYM', 'VERB', 'X', 'SPACE'
+        pos_list = ['ADJ', 'ADP', 'ADV', 'AUX', 'CONJ', 'CCONJ', 'DET', 'INTJ', 'NOUN', 'NUM', 'PART', \
+                   'PRON', 'PROPN', 'PUNCT', 'SCONJ', 'SYM', 'VERB', 'X', 'SPACE']
         valid_labels = valid_labels if valid_labels is not None else pos_list
         return valid_labels
 
@@ -118,8 +115,45 @@ class FeatureExtractionNER(FeatureExtractionTags):
         return token.ent_type_
 
 
-class FeatureExtractionWordEmbeddings:
-    pass
+class FeatureExtractionWordEmbeddings(BaseEstimator, TransformerMixin):
+    """
+    Fast text spacy word embeddings implementation
+    """
+    def fit_transform(self, X: List[spacy.tokens.doc.Doc]):
+        """
+        Get average vector of fasttext spacy documents
+        :return:
+        """
+        return pd.DataFrame([doc.vector for doc in X])
+
+
+class FeatureExtractionTopics(BaseEstimator, TransformerMixin):
+
+    def __init__(self, n_process=2, min_topics=10, max_topics=30):
+        self.lda_model_mgr = None
+        self.n_process = n_process
+        self.min_topics = min_topics
+        self.max_topics = max_topics
+
+    @staticmethod
+    def tokenize_text(texts):
+        return [text.split() for text in texts]
+
+    def fit(self, X: List[List[str]]):
+        tokenized_text = self.tokenize_text(X)
+        self.lda_model_mgr = LDAModelMgr()
+        self.lda_model_mgr.fit(tokenized_text=tokenized_text)
+
+    def transform(self, X: List[List[str]]):
+        tokenized_text = self.tokenize_text(X)
+        _ = self.lda_model_mgr.transform(tokenized_text=tokenized_text,
+                                         n_process=self.n_process,
+                                         n_topics_range=(self.min_topics, self.max_topics))
+        return self.lda_model_mgr.predict(tokenized_text=tokenized_text)
+
+    def fit_transform(self, X, y=None, **fit_params):
+        self.fit(X)
+        return self.transform(X)
 
 
 if __name__ == '__main__':
@@ -159,12 +193,25 @@ if __name__ == '__main__':
 
     ### FEATURES
     featurizer_ner = FeatureExtractionNER(nlp_model=nlp_model)
-    text_document = featurizer_ner.transformation(doc=docs[0])
     features_ner = featurizer_ner.fit_transform(X=docs)
 
+    featurizer_pos = FeatureExtractionPartOfSpeech(nlp_model=nlp_model)
+    features_pos = featurizer_pos.fit_transform(X=docs)
 
-    # Return features on DF form for EDA get_features()
-    # todo test sparce and dense output and add wemb
+    featurizer_dep_par = FeatureExtractionDependencyParser(nlp_model=nlp_model)
+    features_dep_par = featurizer_dep_par.fit_transform(X=docs)
+
+    featurizer_pos_tags = FeatureExtractionPosTagging(nlp_model=nlp_model)
+    features_pos_tags = featurizer_pos_tags.fit_transform(X=docs)
+
+    featurizer_topics = FeatureExtractionTopics(n_process=2,
+                                                min_topics=10,
+                                                max_topics=20)
+    features_topics = featurizer_topics.fit_transform(texts_pos_processed)
+
+    featurizer_word_emb = FeatureExtractionWordEmbeddings()
+    features_word_emb = featurizer_word_emb.fit_transform(X=docs[0])
+
 
 
 
