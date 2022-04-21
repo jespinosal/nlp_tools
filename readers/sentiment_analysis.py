@@ -578,10 +578,28 @@ def emotions_parser(emotion_list):
     return emotion_group_
 
 
+def get_sentiment_analysis_data(sentiment_analysis_data_path):
+    df_isear = reader_dataset_isear(sentiment_analysis_data_path=sentiment_analysis_data_path)
+    df_emocap = reader_dataset_emocap(sentiment_analysis_data_path=sentiment_analysis_data_path)
+    df_go_emotions = reader_dataset_go_emotions(sentiment_analysis_data_path=sentiment_analysis_data_path)
+    df_sa = pd.concat([df_isear, df_emocap, df_go_emotions])
+    # Add polarity label
+    df_sa[ConstantsSentimentAnalysis.LABEL_POLARITY] = df_sa[ConstantsSentimentAnalysis.LABEL_EMOTION].apply(
+        lambda label_emotions: polarity_parser(labels=label_emotions))
+    # Compute Ekman emotion for multi label
+    df_sa[ConstantsSentimentAnalysis.LABEL_EKMAN] = df_sa[ConstantsSentimentAnalysis.LABEL_EMOTION].apply(
+        lambda x: sorted(emotions_parser(x)))  # sorted to keep same cases when data partition
+    return df_sa
+
+
 if __name__ == "__main__":
 
     DATA_PATH = 'data'
     sentiment_analysis_data_path_ = os.path.join(DATA_PATH, 'raw/sentiment_analysis')
+
+    df_sa_main = get_sentiment_analysis_data(sentiment_analysis_data_path=sentiment_analysis_data_path_)
+
+
     df_sentiment_analysis_path_ = os.path.join(DATA_PATH, 'sentiment_analysis.csv')  # to write results
     token_size_values = {'min': 4,
                          'max': 18}  # --> approximated to nearest byte value (to focus on short context-pure)
