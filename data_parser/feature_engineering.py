@@ -6,20 +6,49 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.base import BaseEstimator, TransformerMixin
 from typing import List
 from models.topic_modelling import LDAModelMgr
+import pandas as pd
 
 
-class FeatureExtractionTags(ABC, BaseEstimator, TransformerMixin):
+class FeatureExtractionBOWBase:
+    def __init__(self,
+                 max_features=50000
+                 ):
+        self.vectorizer = TfidfVectorizer(analyzer='word', ngram_range=(1, 2), max_features=max_features)
+        self.feature_names = None
+
+    def _get_feature_names(self):
+        if self.vectorizer is not None:
+            self.feature_names = self.vectorizer.get_feature_names_out()
+        else:
+            Exception("Vectorizer should be fitted first")
+
+    # The private methods has to purpose 1) Build fit_transform and 2) Support BOW
+    def _fit(self, fitted_corpus):
+        self.vectorizer.fit(fitted_corpus)
+        self._get_feature_names()
+        return None
+
+    def _transform(self, fitted_corpus):
+        sparse_vectors = self.vectorizer.fit_transform(fitted_corpus)
+        dense_vector = sparse_vectors.todense().tolist()
+        return pd.DataFrame(dense_vector, columns=self.feature_names)
+
+
+class FeatureExtractionTags(ABC, BaseEstimator, TransformerMixin, FeatureExtractionBOWBase):
 
     def __init__(self,
                  nlp_model: spacy.language.Language,
                  valid_labels: list = None,
                  n_process: int = 1,
+                 max_features=50000
                  ):
         self.n_process = n_process
         self.fitted_corpus = None
         self.default_token = 'EMPTY'
         self.valid_labels = self._get_labels(nlp_model, valid_labels) + [self.default_token]
         self.consider_intermediate_tokens = True
+        self.vectorizer = TfidfVectorizer(analyzer='word', ngram_range=(1, 2), max_features=max_features)
+        self.feature_names = None  # todo add super class init
 
     @abstractmethod
     def _get_labels(self, nlp_model, valid_labels):
@@ -65,12 +94,20 @@ class FeatureExtractionTags(ABC, BaseEstimator, TransformerMixin):
                          in self.valid_labels]
         return " ".join(text_tags)
 
+    def fit(self, X: List[spacy.tokens.doc.Doc]):
+        fitted_corpus = self.process_documents(X)
+        self._fit(fitted_corpus)
+        return None
+
+    def transform(self, X: List[spacy.tokens.doc.Doc]):
+        fitted_corpus = self.process_documents(X)
+        self._transform(fitted_corpus)
+        return self._transform(fitted_corpus)
+
     def fit_transform(self, X: List[spacy.tokens.doc.Doc]):
         fitted_corpus = self.process_documents(X)
-        vectorizer = TfidfVectorizer(analyzer='word', ngram_range=(1, 2))
-        sparse_vectors = vectorizer.fit_transform(fitted_corpus)
-        dense_vector = sparse_vectors.todense().tolist()
-        return pd.DataFrame(dense_vector, columns=vectorizer.get_feature_names_out())
+        self._fit(fitted_corpus)
+        return self._transform(fitted_corpus)
 
 
 class FeatureExtractionPartOfSpeech(FeatureExtractionTags):
@@ -117,7 +154,8 @@ class FeatureExtractionNER(FeatureExtractionTags):
 
 class FeatureExtractionWordEmbeddings(BaseEstimator, TransformerMixin):
     """
-    Fast text spacy word embeddings implementation
+    Remember for small-medioum models embeddings will be hash fucntions.
+    If you want word embeddings such as Glove use large versions.
     """
     def fit_transform(self, X: List[spacy.tokens.doc.Doc]):
         """
@@ -125,6 +163,20 @@ class FeatureExtractionWordEmbeddings(BaseEstimator, TransformerMixin):
         :return:
         """
         return pd.DataFrame([doc.vector for doc in X])
+
+
+class FeatureExtractionBOW(FeatureExtractionBOWBase):
+
+    def fit(self, X: List[str]):
+        self._fit(X)
+        return None
+
+    def transform(self, X: List[str]):
+        return self._transform(X)
+
+    def fit_transform(self, X):
+        self.fit(X)
+        return self.transform(X)
 
 
 class FeatureExtractionTopics(BaseEstimator, TransformerMixin):
@@ -143,12 +195,12 @@ class FeatureExtractionTopics(BaseEstimator, TransformerMixin):
         tokenized_text = self.tokenize_text(X)
         self.lda_model_mgr = LDAModelMgr()
         self.lda_model_mgr.fit(tokenized_text=tokenized_text)
-
-    def transform(self, X: List[List[str]]):
-        tokenized_text = self.tokenize_text(X)
         _ = self.lda_model_mgr.transform(tokenized_text=tokenized_text,
                                          n_process=self.n_process,
                                          n_topics_range=(self.min_topics, self.max_topics))
+
+    def transform(self, X: List[List[str]]):
+        tokenized_text = self.tokenize_text(X)
         return self.lda_model_mgr.predict(tokenized_text=tokenized_text)
 
     def fit_transform(self, X, y=None, **fit_params):
@@ -210,7 +262,10 @@ if __name__ == '__main__':
     features_topics = featurizer_topics.fit_transform(texts_pos_processed)
 
     featurizer_word_emb = FeatureExtractionWordEmbeddings()
-    features_word_emb = featurizer_word_emb.fit_transform(X=docs[0])
+    features_word_emb = featurizer_word_emb.fit_transform(X=docs)
+
+    featurizer_bow = FeatureExtractionBOW(max_features=100)
+    features_pos_tags = featurizer_bow.fit_transform(X=text_cleaned)
 
 
 
