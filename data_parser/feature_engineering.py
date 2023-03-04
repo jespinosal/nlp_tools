@@ -211,7 +211,6 @@ class FeatureExtractionTopics(BaseEstimator, TransformerMixin):
 if __name__ == '__main__':
 
     from data_parser.preprocessing import TextPreprocessing
-    import pandas as pd
     import time
 
     start = time.time()
@@ -265,7 +264,7 @@ if __name__ == '__main__':
     features_word_emb = featurizer_word_emb.fit_transform(X=docs)
 
     featurizer_bow = FeatureExtractionBOW(max_features=100)
-    features_pos_tags = featurizer_bow.fit_transform(X=text_cleaned)
+    features_bow = featurizer_bow.fit_transform(X=text_cleaned)
 
 
 
