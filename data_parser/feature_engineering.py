@@ -181,11 +181,12 @@ class FeatureExtractionBOW(FeatureExtractionBOWBase):
 
 class FeatureExtractionTopics(BaseEstimator, TransformerMixin):
 
-    def __init__(self, n_process=2, min_topics=10, max_topics=30):
+    def __init__(self, n_process=2, min_topics=10, max_topics=30, top_words_topic_name=3):
         self.lda_model_mgr = None
         self.n_process = n_process
         self.min_topics = min_topics
         self.max_topics = max_topics
+        self.top_words_topic_name = top_words_topic_name
 
     @staticmethod
     def tokenize_text(texts):
@@ -193,15 +194,18 @@ class FeatureExtractionTopics(BaseEstimator, TransformerMixin):
 
     def fit(self, X: List[List[str]]):
         tokenized_text = self.tokenize_text(X)
-        self.lda_model_mgr = LDAModelMgr()
-        self.lda_model_mgr.fit(tokenized_text=tokenized_text)
-        _ = self.lda_model_mgr.transform(tokenized_text=tokenized_text,
-                                         n_process=self.n_process,
-                                         n_topics_range=(self.min_topics, self.max_topics))
+        self.lda_model_mgr = LDAModelMgr(top_words_topic_name=self.top_words_topic_name)
+        _ = self.lda_model_mgr.fit(tokenized_text=tokenized_text,
+                                   n_process=self.n_process,
+                                   n_topics_range=(self.min_topics, self.max_topics))
 
     def transform(self, X: List[List[str]]):
         tokenized_text = self.tokenize_text(X)
-        return self.lda_model_mgr.predict(tokenized_text=tokenized_text)
+        topic_inference = self.lda_model_mgr.transform(tokenized_text=tokenized_text)
+        topic_inference['max_topic'] = topic_inference.idxmax(axis=1)
+        topic_inference['max_value'] = topic_inference.max(1)
+        topic_inference['topic_id'] = topic_inference['max_topic'].replace(self.lda_model_mgr.topic_names_inverse)
+        return topic_inference
 
     def fit_transform(self, X, y=None, **fit_params):
         self.fit(X)
