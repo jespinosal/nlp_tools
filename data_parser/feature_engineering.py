@@ -195,13 +195,13 @@ class FeatureExtractionTopics(BaseEstimator, TransformerMixin):
     def fit(self, X: List[List[str]]):
         tokenized_text = self.tokenize_text(X)
         self.lda_model_mgr = LDAModelMgr(top_words_topic_name=self.top_words_topic_name)
-        _ = self.lda_model_mgr.fit(tokenized_text=tokenized_text,
+        _ = self.lda_model_mgr.fit(X=tokenized_text,
                                    n_process=self.n_process,
                                    n_topics_range=(self.min_topics, self.max_topics))
 
     def transform(self, X: List[List[str]]):
         tokenized_text = self.tokenize_text(X)
-        topic_inference = self.lda_model_mgr.transform(tokenized_text=tokenized_text)
+        topic_inference = self.lda_model_mgr.transform(X=tokenized_text)
         topic_inference['max_topic'] = topic_inference.idxmax(axis=1)
         topic_inference['max_value'] = topic_inference.max(1)
         topic_inference['topic_id'] = topic_inference['max_topic'].replace(self.lda_model_mgr.topic_names_inverse)

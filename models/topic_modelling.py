@@ -65,10 +65,11 @@ class LDAModelMgr(BaseEstimator, TransformerMixin):
             topic_names[n_topic] = " ".join(topic_words)
         return topic_names
 
-    def fit(self, tokenized_text, n_topics_range: Tuple[int] = (10, 20), n_process=1):
+    def fit(self, X, n_topics_range: Tuple[int] = (10, 20), n_process=1):
         """
         LDA hyper tunining to find the best LDA model
         """
+        tokenized_text = X
         start_time = datetime.now()
         self.set_word_dictionary(tokenized_text)
         self.corpus = self.get_corpus(tokenized_text=tokenized_text)
@@ -119,7 +120,8 @@ class LDAModelMgr(BaseEstimator, TransformerMixin):
     def normalize_gamma(inference):
         return np.divide(inference, inference.sum(1).reshape(-1, 1))
 
-    def transform(self, tokenized_text: List[List[int]]):
+    def transform(self, X: List[List[int]]):
+        tokenized_text = X
         if self.common_dictionary is None:
             raise ValueError("Set a common_dictionary dict, loading a existing one or using fit method")
         elif self.lda_model is None:
@@ -140,10 +142,10 @@ if __name__ == "__main__":
 
     start = time.time()
     text_path = 'data/sentiment_analysis.csv'
-    df = pd.read_csv(text_path, sep=';', dtype={'label_emotion': 'str', 'partition': 'str'})[0:1000]
+    df = pd.read_csv(text_path, sep=';', dtype={'label_emotion': 'str', 'partition': 'str'})[0:20000]
     texts = df.text.to_list()
-    nlp_model = spacy.load('en_core_web_sm')
-    batch_size = 512
+    nlp_model = spacy.load('en_core_web_lg')
+    batch_size = 256
     n_process = 1
     config = {'delete_html': True,
               'delete_numbers': True,
@@ -160,9 +162,15 @@ if __name__ == "__main__":
                                           config=config,
                                           batch_size=batch_size,
                                           n_process=n_process)
+    start_t = time.time()
     text_cleaned = text_preprocessor.pre_processing_texts(texts=texts)
+    print('time cleaning:', time.time()-start_t)
+    start_t = time.time()
     docs = text_preprocessor.process_nlp_documents(texts=text_cleaned)
+    print('time spacy loading:', time.time()-start_t)
+    start_t = time.time()
     texts_pos_processed = text_preprocessor.pos_processing_texts(spacy_docs=docs)
+    print('time post processing:', time.time() - start_t)
     end = time.time()
     print('time:', end - start)
     _tokenized_text = [text_clean.split() for text_clean in texts_pos_processed]
